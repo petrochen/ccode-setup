@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # macOS Development Environment Setup Script
@@ -58,14 +58,33 @@ detect_architecture() {
 
 # Detect shell and set global SHELL_RC
 detect_shell() {
-    if [[ "$SHELL" == *"zsh"* ]]; then
+    # Get the user's default shell from multiple sources
+    local user_shell=""
+    
+    # Method 1: Check SHELL environment variable
+    if [[ -n "$SHELL" ]]; then
+        user_shell="$SHELL"
+    fi
+    
+    # Method 2: Check user's shell from dscl (macOS specific)
+    if [[ -z "$user_shell" ]]; then
+        user_shell=$(dscl . -read /Users/$(whoami) UserShell 2>/dev/null | awk '{print $2}')
+    fi
+    
+    # Method 3: Check /etc/passwd
+    if [[ -z "$user_shell" ]]; then
+        user_shell=$(grep "^$(whoami):" /etc/passwd 2>/dev/null | cut -d: -f7)
+    fi
+    
+    # Determine shell type and config file
+    if [[ "$user_shell" == *"zsh"* ]]; then
         SHELL_TYPE="zsh"
         SHELL_RC="$HOME/.zshrc"
-    elif [[ "$SHELL" == *"bash"* ]]; then
+    elif [[ "$user_shell" == *"bash"* ]]; then
         SHELL_TYPE="bash"
         SHELL_RC="$HOME/.bash_profile"
     else
-        # Fallback to zsh as it's default on modern macOS
+        # Fallback to zsh as it's default on modern macOS (10.15+)
         SHELL_TYPE="zsh"
         SHELL_RC="$HOME/.zshrc"
     fi
@@ -86,6 +105,18 @@ command_exists() {
 add_to_path() {
     local path_to_add="$1"
     local shell_rc="$2"
+    
+    # Check if shell_rc is set
+    if [[ -z "$shell_rc" ]]; then
+        print_error "Shell configuration file not detected"
+        return 1
+    fi
+    
+    # Create shell config file if it doesn't exist
+    if [[ ! -f "$shell_rc" ]]; then
+        touch "$shell_rc"
+        print_info "Created $shell_rc"
+    fi
     
     if ! grep -q "$path_to_add" "$shell_rc" 2>/dev/null; then
         echo "export PATH=\"$path_to_add:\$PATH\"" >> "$shell_rc"
