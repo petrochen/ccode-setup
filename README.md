@@ -18,7 +18,7 @@ One-command setup for a fresh macOS installation. Automatically installs and con
 Run this single command in Terminal on a fresh Mac:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/apetrochenko/mac-setup/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/petrochen/ccode-setup/main/install.sh | bash
 ```
 
 ## 📋 Requirements
@@ -64,7 +64,7 @@ If you prefer to review the script first:
 
 ```bash
 # Download the script
-curl -fsSL https://raw.githubusercontent.com/apetrochenko/mac-setup/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/petrochen/ccode-setup/main/install.sh -o install.sh
 
 # Review it
 cat install.sh
