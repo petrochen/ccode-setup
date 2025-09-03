@@ -56,22 +56,25 @@ detect_architecture() {
     fi
 }
 
-# Detect shell
+# Detect shell and set global SHELL_RC
 detect_shell() {
     if [[ "$SHELL" == *"zsh"* ]]; then
-        echo "zsh"
+        SHELL_TYPE="zsh"
         SHELL_RC="$HOME/.zshrc"
     elif [[ "$SHELL" == *"bash"* ]]; then
-        echo "bash"
+        SHELL_TYPE="bash"
         SHELL_RC="$HOME/.bash_profile"
     else
         # Fallback to zsh as it's default on modern macOS
-        echo "zsh"
+        SHELL_TYPE="zsh"
         SHELL_RC="$HOME/.zshrc"
     fi
     
     # Ensure the shell config file exists
     touch "$SHELL_RC"
+    
+    # Return the shell type for display
+    echo "$SHELL_TYPE"
 }
 
 # Check if command exists
@@ -285,7 +288,6 @@ verify_installations() {
         "node:Node.js"
         "npm:npm"
         "python3:Python"
-        "code:VS Code"
     )
     
     for cmd_pair in "${commands[@]}"; do
@@ -297,6 +299,15 @@ verify_installations() {
             echo -e "${RED}❌ $name:${NC} Not found"
         fi
     done
+    
+    # Special check for VS Code
+    if [[ -e "/Applications/Visual Studio Code.app" ]]; then
+        echo -e "${GREEN}✅ VS Code:${NC} Installed at /Applications/Visual Studio Code.app"
+    elif command_exists code; then
+        echo -e "${GREEN}✅ VS Code:${NC} code command available"
+    else
+        echo -e "${RED}❌ VS Code:${NC} Not found"
+    fi
     
     # Special check for Claude Code
     if [[ -f "$HOME/.local/bin/claude" ]]; then
@@ -314,7 +325,7 @@ main() {
     # System detection
     print_info "Detecting system configuration..."
     ARCH=$(detect_architecture)
-    SHELL_TYPE=$(detect_shell)
+    detect_shell  # This sets SHELL_TYPE and SHELL_RC as globals
     
     echo "  Architecture: $ARCH"
     echo "  Shell: $SHELL_TYPE"
