@@ -6,7 +6,8 @@
 # Installs: Homebrew, Claude Code, Node.js, Python, Git, VS Code
 #############################################
 
-set -e  # Exit on error
+# Don't exit on error - we want to continue even if some steps fail
+set +e
 
 # Colors for output
 RED='\033[0;31m'
@@ -60,10 +61,17 @@ detect_shell() {
     if [[ "$SHELL" == *"zsh"* ]]; then
         echo "zsh"
         SHELL_RC="$HOME/.zshrc"
-    else
+    elif [[ "$SHELL" == *"bash"* ]]; then
         echo "bash"
         SHELL_RC="$HOME/.bash_profile"
+    else
+        # Fallback to zsh as it's default on modern macOS
+        echo "zsh"
+        SHELL_RC="$HOME/.zshrc"
     fi
+    
+    # Ensure the shell config file exists
+    touch "$SHELL_RC"
 }
 
 # Check if command exists
@@ -147,11 +155,15 @@ install_dev_tools() {
 
 # Install VS Code
 install_vscode() {
-    if command_exists code; then
-        print_info "VS Code already installed"
+    # Check if VS Code is already installed
+    if [[ -e "/Applications/Visual Studio Code.app" ]]; then
+        print_info "VS Code already installed at /Applications/Visual Studio Code.app"
+    elif command_exists code; then
+        print_info "VS Code already installed (code command available)"
     else
         print_info "Installing VS Code..."
-        brew install --cask visual-studio-code
+        # Force reinstall if cask thinks it's installed but app is missing
+        brew reinstall --cask visual-studio-code || brew install --cask visual-studio-code
         print_success "VS Code installed"
     fi
 }
@@ -330,7 +342,7 @@ main() {
     
     # Step 4: VS Code
     print_info "[4/7] Visual Studio Code"
-    install_vscode
+    install_vscode || track_error "VS Code installation failed"
     echo ""
     
     # Step 5: Claude Code
@@ -353,7 +365,14 @@ main() {
     add_to_path "$HOME/.local/bin" "$SHELL_RC"
     
     # Final message
-    print_success "Installation complete! 🎉"
+    echo ""
+    if [[ $ERRORS_OCCURRED -eq 0 ]]; then
+        print_success "Installation complete! 🎉"
+    else
+        print_warning "Installation completed with $ERRORS_OCCURRED error(s)"
+        print_info "Some components may need manual installation"
+    fi
+    
     echo ""
     print_warning "IMPORTANT: Run the following commands to apply changes:"
     echo ""
@@ -363,8 +382,14 @@ main() {
     print_info "Or simply open a new terminal window"
 }
 
-# Error handling
-trap 'print_error "An error occurred. Installation may be incomplete."; exit 1' ERR
+# Track errors but don't exit
+ERRORS_OCCURRED=0
+
+# Function to track errors
+track_error() {
+    ERRORS_OCCURRED=$((ERRORS_OCCURRED + 1))
+    print_error "$1"
+}
 
 # Run main function
 main
