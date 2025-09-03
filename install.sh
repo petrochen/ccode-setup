@@ -216,16 +216,29 @@ install_vscode() {
 install_claude_code() {
     print_info "Installing Claude Code..."
     
-    # Download and run Claude Code installer
-    curl -fsSL https://claude.ai/install.sh | bash
+    # Check if Claude Code is already installed
+    if [[ -f "$HOME/.local/bin/claude" ]]; then
+        print_info "Claude Code already installed"
+        # Check for updates
+        local current_version=$("$HOME/.local/bin/claude" --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+        print_info "Current version: $current_version"
+    else
+        # Download and run Claude Code installer
+        # Redirect stderr to avoid zsh config errors when installer tries to source .zshrc
+        curl -fsSL https://claude.ai/install.sh | bash 2>/dev/null || true
+        
+        if [[ -f "$HOME/.local/bin/claude" ]]; then
+            print_success "Claude Code installed"
+        else
+            print_error "Claude Code installation may have failed"
+        fi
+    fi
     
     # Add Claude Code to PATH
     add_to_path "$HOME/.local/bin" "$SHELL_RC"
     
     # Don't source zsh config in bash - it will fail with Oh My Zsh/P10k
     # User will need to restart shell or source manually
-    
-    print_success "Claude Code installed"
 }
 
 # Configure Git (with optional user input)
@@ -426,12 +439,21 @@ main() {
     fi
     
     echo ""
-    print_warning "IMPORTANT: Run the following commands to apply changes:"
+    print_warning "IMPORTANT: To use Claude Code, do one of the following:"
     echo ""
-    echo "  source $SHELL_RC"
-    echo "  claude --help"
+    if [[ "$SHELL_TYPE" == "zsh" ]]; then
+        echo "  Option 1: Open a new terminal window/tab"
+        echo "  Option 2: Run in your terminal:"
+        echo "    source ~/.zshrc"
+        echo "    claude --help"
+    else
+        echo "  Option 1: Open a new terminal window/tab"
+        echo "  Option 2: Run in your terminal:"
+        echo "    source ~/.bash_profile"
+        echo "    claude --help"
+    fi
     echo ""
-    print_info "Or simply open a new terminal window"
+    print_info "Note: Ignore any Oh My Zsh errors above - they're harmless"
 }
 
 # Track errors but don't exit
