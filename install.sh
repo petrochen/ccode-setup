@@ -181,22 +181,85 @@ configure_git() {
         print_info "Git already configured"
         echo "  Name: $(git config --global user.name)"
         echo "  Email: $(git config --global user.email)"
-    else
-        # Ask for user input or use defaults
-        print_warning "Git configuration needed"
-        echo -n "Enter your name (or press Enter for 'Developer'): "
-        read -r git_name
-        git_name=${git_name:-Developer}
-        
-        echo -n "Enter your email (or press Enter for 'dev@example.com'): "
-        read -r git_email
-        git_email=${git_email:-dev@example.com}
-        
-        git config --global user.name "$git_name"
-        git config --global user.email "$git_email"
-        
-        print_success "Git configured"
+        echo ""
+        echo -n "Do you want to change these settings? (y/N): "
+        read -r change_config
+        if [[ "$change_config" != "y" && "$change_config" != "Y" ]]; then
+            return
+        fi
     fi
+    
+    # Try to get user info from macOS
+    local suggested_name=""
+    local suggested_email=""
+    
+    # Try to get full name from macOS
+    if command_exists id; then
+        suggested_name=$(id -F 2>/dev/null)
+    fi
+    
+    # Try to get name from macOS system
+    if [[ -z "$suggested_name" ]]; then
+        suggested_name=$(dscl . -read /Users/$(whoami) RealName 2>/dev/null | tail -1 | sed 's/^ *//')
+    fi
+    
+    # Try to get computer name as fallback
+    if [[ -z "$suggested_name" ]]; then
+        suggested_name=$(scutil --get ComputerName 2>/dev/null)
+    fi
+    
+    # Try to get email from Apple ID (requires user to be logged in)
+    # This is stored in various places but not always accessible
+    if command_exists defaults; then
+        # Try iCloud account
+        suggested_email=$(defaults read MobileMeAccounts Accounts 2>/dev/null | grep -m1 "@" | sed 's/.*"\(.*@.*\)".*/\1/' | head -1)
+    fi
+    
+    # Clean up suggested values
+    suggested_name=$(echo "$suggested_name" | xargs)
+    suggested_email=$(echo "$suggested_email" | xargs)
+    
+    # Interactive prompt with suggestions
+    print_warning "Git configuration needed"
+    echo ""
+    
+    # Name prompt
+    if [[ -n "$suggested_name" ]]; then
+        echo -n "Enter your name (or press Enter for '$suggested_name'): "
+        read -r git_name
+        git_name=${git_name:-$suggested_name}
+    else
+        echo -n "Enter your name: "
+        read -r git_name
+        while [[ -z "$git_name" ]]; do
+            print_error "Name cannot be empty"
+            echo -n "Enter your name: "
+            read -r git_name
+        done
+    fi
+    
+    # Email prompt
+    if [[ -n "$suggested_email" ]]; then
+        echo -n "Enter your email (or press Enter for '$suggested_email'): "
+        read -r git_email
+        git_email=${git_email:-$suggested_email}
+    else
+        echo -n "Enter your email: "
+        read -r git_email
+        while [[ -z "$git_email" ]]; do
+            print_error "Email cannot be empty"
+            echo -n "Enter your email: "
+            read -r git_email
+        done
+    fi
+    
+    # Set git config
+    git config --global user.name "$git_name"
+    git config --global user.email "$git_email"
+    
+    print_success "Git configured"
+    echo "  Name: $git_name"
+    echo "  Email: $git_email"
 }
 
 # Verify installations

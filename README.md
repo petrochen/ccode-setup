@@ -45,7 +45,11 @@ The script is mostly automatic, but will ask for:
 
 1. **Administrator password** - Once for Homebrew installation
 2. **Xcode license agreement** - Click "Agree" in the popup
-3. **Git configuration** (optional) - Your name and email for commits
+3. **Git configuration** - The script will:
+   - Try to auto-detect your name from macOS account
+   - Try to find your Apple ID email (if available)
+   - Suggest these values or ask you to enter them
+   - Allow you to change existing Git config if needed
 
 ## 🛠️ Post-Installation
 
@@ -101,6 +105,21 @@ If Homebrew installation fails, try manually:
 ### Permission denied errors
 
 Make sure you have administrator access on your Mac. The script will request your password when needed.
+
+### Changing Git configuration
+
+If you need to change Git configuration after installation:
+
+```bash
+git config --global user.name "Your New Name"
+git config --global user.email "your.new@email.com"
+```
+
+To see current configuration:
+
+```bash
+git config --global --list
+```
 
 ## 🎨 Customization
 
