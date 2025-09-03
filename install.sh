@@ -130,6 +130,16 @@ add_to_path() {
 install_homebrew() {
     if command_exists brew; then
         print_info "Homebrew already installed"
+        # Ensure Homebrew is in current session PATH
+        if [[ "$ARCH" == "apple_silicon" ]]; then
+            if [[ -f "/opt/homebrew/bin/brew" ]]; then
+                eval "$(/opt/homebrew/bin/brew shellenv)"
+            fi
+        else
+            if [[ -f "/usr/local/bin/brew" ]]; then
+                eval "$(/usr/local/bin/brew shellenv)"
+            fi
+        fi
     else
         print_info "Installing Homebrew..."
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -212,8 +222,8 @@ install_claude_code() {
     # Add Claude Code to PATH
     add_to_path "$HOME/.local/bin" "$SHELL_RC"
     
-    # Source the shell config
-    source "$SHELL_RC"
+    # Don't source zsh config in bash - it will fail with Oh My Zsh/P10k
+    # User will need to restart shell or source manually
     
     print_success "Claude Code installed"
 }
